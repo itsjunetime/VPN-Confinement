@@ -21,11 +21,15 @@ let
   namespaceToService =
     name: def:
     assert builtins.stringLength name < 8;
-    {
+    rec {
       description = "${name} network interface";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
+      restartTriggers = with serviceConfig; [
+        ExecStart
+        ExecStopPost
+      ];
 
       serviceConfig = {
         Type = "oneshot";
