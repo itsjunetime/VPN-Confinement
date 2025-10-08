@@ -62,6 +62,10 @@ pkgs.writeShellApplication {
         | tr -d ' ' \
     )
 
+    # Throw error when DNS is unset
+    : "''${DNS:?WireGuard configuration error: missing DNS field.
+    Please set DNS=<vpn_provided_dns> before continuing.}"
+
     # Add Addresses
     IFS=","
     # shellcheck disable=SC2154
