@@ -1,4 +1,9 @@
-{ pkgs, lib, optionalIPv6String }: netnsName: def:
+{
+  pkgs,
+  lib,
+  optionalIPv6String,
+}:
+netnsName: def:
 let
   inherit (lib) concatMapStrings;
 
@@ -10,12 +15,13 @@ let
     generatePortMapRules
     generatePreroutingRules
     generateAllowedPortRules
-  ;
+    ;
 
   utils = import ../lib/utils.nix { inherit lib; };
   inherit (utils) isValidIPv4;
 
-in pkgs.writeShellApplication {
+in
+pkgs.writeShellApplication {
   name = "${netnsName}-up";
   runtimeInputs = with pkgs; [
     bash
@@ -36,9 +42,7 @@ in pkgs.writeShellApplication {
       "-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
     ]}
 
-    ${optionalIPv6String
-      "ip netns exec ${netnsName} ip6tables -A INPUT -p ipv6-icmp -j ACCEPT"
-    }
+    ${optionalIPv6String "ip netns exec ${netnsName} ip6tables -A INPUT -p ipv6-icmp -j ACCEPT"}
 
     # Drop packets to unspecified DNS
     ${addNetNSIPRules netnsName [
@@ -76,9 +80,9 @@ in pkgs.writeShellApplication {
         ip netns exec ${netnsName} iptables \
           -I dns-fw -p udp -d "$ns" -j ACCEPT
       ${optionalIPv6String ''
-      else
-        ip netns exec ${netnsName} ip6tables \
-          -I dns-fw -p udp -d "$ns" -j ACCEPT
+        else
+          ip netns exec ${netnsName} ip6tables \
+            -I dns-fw -p udp -d "$ns" -j ACCEPT
       ''}
       fi
     done
@@ -126,7 +130,7 @@ in pkgs.writeShellApplication {
     ip link add ${netnsName}-br type bridge
     ip addr add ${def.bridgeAddress}/24 dev ${netnsName}-br
     ${optionalIPv6String ''
-    ip addr add ${def.bridgeAddressIPv6}/64 dev ${netnsName}-br
+      ip addr add ${def.bridgeAddressIPv6}/64 dev ${netnsName}-br
     ''}
     ip link set dev ${netnsName}-br up
 
@@ -139,33 +143,39 @@ in pkgs.writeShellApplication {
     ip -n ${netnsName} addr add ${def.namespaceAddress}/24 \
       dev veth-${netnsName}
     ${optionalIPv6String ''
-    ip -n ${netnsName} addr add ${def.namespaceAddressIPv6}/64 \
-      dev veth-${netnsName}
+      ip -n ${netnsName} addr add ${def.namespaceAddressIPv6}/64 \
+        dev veth-${netnsName}
     ''}
     ip -n ${netnsName} link set dev veth-${netnsName} up
 
     # Add routes
     ip -n ${netnsName} route add default dev ${netnsName}0
     ${optionalIPv6String ''
-    ip -6 -n ${netnsName} route add default dev ${netnsName}0
+      ip -6 -n ${netnsName} route add default dev ${netnsName}0
     ''}
 
-    ${concatMapStrings (x: if isValidIPv4 x then ''
-      ip -n ${netnsName} route add ${x} via ${def.bridgeAddress}
-    '' else optionalIPv6String ''
-      ip -n ${netnsName} route add ${x} via ${def.bridgeAddressIPv6}
-    ''
+    ${concatMapStrings (
+      x:
+      if isValidIPv4 x then
+        ''
+          ip -n ${netnsName} route add ${x} via ${def.bridgeAddress}
+        ''
+      else
+        optionalIPv6String ''
+          ip -n ${netnsName} route add ${x} via ${def.bridgeAddressIPv6}
+        ''
     ) def.accessibleFrom}
 
     # Add prerouting rules
     iptables -t nat -N ${netnsName}-prerouting
     iptables -t nat -A PREROUTING -j ${netnsName}-prerouting
     ${optionalIPv6String ''
-    ip6tables -t nat -N ${netnsName}-prerouting
-    ip6tables -t nat -A PREROUTING -j ${netnsName}-prerouting
+      ip6tables -t nat -N ${netnsName}-prerouting
+      ip6tables -t nat -A PREROUTING -j ${netnsName}-prerouting
     ''}
-    ${generatePreroutingRules "${netnsName}-prerouting"
-      def.namespaceAddress def.namespaceAddressIPv6 def.portMappings}
+    ${generatePreroutingRules "${netnsName}-prerouting" def.namespaceAddress def.namespaceAddressIPv6
+      def.portMappings
+    }
 
     # Add veth INPUT rules
     ${generatePortMapRules netnsName "veth-${netnsName}" def.portMappings}
