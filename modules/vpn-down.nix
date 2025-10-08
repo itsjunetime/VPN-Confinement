@@ -10,6 +10,9 @@ pkgs.writeShellApplication {
   text = ''
     set +o errexit
 
+    # Silence errors
+    exec 2>/dev/null
+
     ip netns del ${netnsName}
     ip link del ${netnsName}-br
     ip link del veth-${netnsName}-br
