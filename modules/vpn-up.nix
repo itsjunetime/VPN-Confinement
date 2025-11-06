@@ -165,9 +165,9 @@ pkgs.writeShellApplication {
     ) def.accessibleFrom}
 
     # Add routes
-    ip -n ${netnsName} route add default dev ${netnsName}0
+    # ip -n ${netnsName} route add default dev ${netnsName}0
     ${optionalIPv6String ''
-      ip -6 -n ${netnsName} route add default dev ${netnsName}0
+      # ip -6 -n ${netnsName} route add default dev ${netnsName}0
     ''}
 
     # Add prerouting rules
