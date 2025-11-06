@@ -157,6 +157,7 @@ pkgs.writeShellApplication {
     ${optionalIPv6String ''
       ip -6 -n ${netnsName} route add default dev ${netnsName}0
     ''}
+    echo "trying to set route for '$AllowedIPs'"
     [ -z "$AllowedIPs" ] || ip -n ${netnsName} route add "$AllowedIPs" dev ${netnsName}0
 
     ${concatMapStrings (
