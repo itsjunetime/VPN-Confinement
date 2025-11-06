@@ -152,14 +152,6 @@ pkgs.writeShellApplication {
     ''}
     ip -n ${netnsName} link set dev veth-${netnsName} up
 
-    # Add routes
-    ip -n ${netnsName} route add default dev ${netnsName}0
-    ${optionalIPv6String ''
-      ip -6 -n ${netnsName} route add default dev ${netnsName}0
-    ''}
-    echo "trying to set route for '$AllowedIPs'"
-    [ -z "$AllowedIPs" ] || ip -n ${netnsName} route add "$AllowedIPs" dev ${netnsName}0
-
     ${concatMapStrings (
       x:
       if isValidIPv4 x then
@@ -171,6 +163,12 @@ pkgs.writeShellApplication {
           ip -n ${netnsName} route add ${x} via ${def.bridgeAddressIPv6}
         ''
     ) def.accessibleFrom}
+
+    # Add routes
+    ip -n ${netnsName} route add default dev ${netnsName}0
+    ${optionalIPv6String ''
+      ip -6 -n ${netnsName} route add default dev ${netnsName}0
+    ''}
 
     # Add prerouting rules
     iptables -t nat -N ${netnsName}-prerouting
