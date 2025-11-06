@@ -58,7 +58,7 @@ pkgs.writeShellApplication {
     # Parse wireguard INI config file
     # shellcheck disable=SC1090
     source <( \
-      grep -e "DNS" -e "Address" -e "Endpoint" ${def.wireguardConfigFile} \
+      grep -e "DNS" -e "Address" -e "Endpoint" -e "AllowedIPs" ${def.wireguardConfigFile} \
         | tr -d ' ' \
     )
 
@@ -157,6 +157,7 @@ pkgs.writeShellApplication {
     ${optionalIPv6String ''
       ip -6 -n ${netnsName} route add default dev ${netnsName}0
     ''}
+    [ -z "$AllowedIPs" ] || ip -n ${netnsName} route add "$AllowedIPs" dev ${netnsName}0
 
     ${concatMapStrings (
       x:
