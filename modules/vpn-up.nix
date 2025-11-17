@@ -31,6 +31,8 @@ pkgs.writeShellApplication {
     wireguard-tools
   ];
   text = ''
+    set -x
+
     ip netns add ${netnsName}
 
     # Set up netns firewall
