@@ -60,7 +60,7 @@ pkgs.writeShellApplication {
     # Parse wireguard INI config file
     # shellcheck disable=SC1090
     source <( \
-      grep -e "DNS" -e "Address" -e "Endpoint" -e "AllowedIPs" ${def.wireguardConfigFile} \
+      grep -e "DNS" -e "Address" -e "Endpoint" ${def.wireguardConfigFile} \
         | tr -d ' ' \
     )
 
@@ -154,6 +154,12 @@ pkgs.writeShellApplication {
     ''}
     ip -n ${netnsName} link set dev veth-${netnsName} up
 
+    # Add routes
+    ip -n ${netnsName} route add default dev ${netnsName}0
+    ${optionalIPv6String ''
+      ip -6 -n ${netnsName} route add default dev ${netnsName}0
+    ''}
+
     ${concatMapStrings (
       x:
       if isValidIPv4 x then
@@ -165,12 +171,6 @@ pkgs.writeShellApplication {
           ip -n ${netnsName} route add ${x} via ${def.bridgeAddressIPv6}
         ''
     ) def.accessibleFrom}
-
-    # Add routes
-    # ip -n ${netnsName} route add default dev ${netnsName}0
-    ${optionalIPv6String ''
-      # ip -6 -n ${netnsName} route add default dev ${netnsName}0
-    ''}
 
     # Add prerouting rules
     iptables -t nat -N ${netnsName}-prerouting
